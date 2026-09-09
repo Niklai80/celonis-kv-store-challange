@@ -1,0 +1,26 @@
+# /api routes to the store (its own endpoints already start with /api/v1/..., so no path
+# rewriting needed - the full path passes through unchanged), / falls through to the UI.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kv-store
+  namespace: kvstore
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: kv-store
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kv-store-ui
+                port:
+                  number: 80

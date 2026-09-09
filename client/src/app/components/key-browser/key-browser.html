@@ -1,0 +1,41 @@
+<section class="card">
+  <h2>Key browser</h2>
+  <p class="subtitle">
+    Scatter-gather across every shard (<code class="mono">GET /api/v1/keys?limit=</code>) - not a
+    cluster-wide snapshot, since keys can change on other shards while this call is in flight.
+  </p>
+
+  <div class="toolbar">
+    <label>
+      Limit
+      <input type="number" [(ngModel)]="limit" min="1" style="width: 90px" />
+    </label>
+    <button type="button" class="secondary" (click)="refresh()" [disabled]="loading()">
+      {{ loading() ? 'Loading…' : 'Refresh' }}
+    </button>
+  </div>
+
+  @if (error(); as message) {
+    <p class="err">{{ message }}</p>
+  } @else if (keys(); as list) {
+    @if (list.length === 0) {
+      <p class="empty">No keys yet.</p>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (key of list; track key) {
+            <tr>
+              <td class="mono">{{ key }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <p class="empty">{{ list.length }} key(s) shown.</p>
+    }
+  }
+</section>

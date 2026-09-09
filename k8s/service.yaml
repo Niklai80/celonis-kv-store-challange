@@ -1,0 +1,17 @@
+# Client-facing entry point - any pod can answer any request (forwarding to the owner
+# happens internally), so a plain ClusterIP round-robining across all 3 pods is correct.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kv-store
+  namespace: kvstore
+  labels:
+    app: kv-store
+spec:
+  type: ClusterIP
+  selector:
+    app: kv-store
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

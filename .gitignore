@@ -1,0 +1,21 @@
+# Java / Maven
+server/target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# Node / Angular
+client/node_modules/
+client/dist/
+client/.angular/
+npm-debug.log*
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+
+# Logs
+*.log

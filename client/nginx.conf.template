@@ -1,0 +1,24 @@
+# Processed by the official nginx image's docker-entrypoint (envsubst on *.template files in
+# /etc/nginx/templates) - ${API_UPSTREAM} is substituted from the container's environment at
+# startup, no custom scripting needed.
+#
+# In Kubernetes this proxy_pass is normally never reached: the Ingress (see k8s/ingress.yaml)
+# routes /api straight to the kv-store Service, bypassing this container entirely. It exists so
+# the same UI image also works standalone - docker-compose, or `docker run` against a single
+# node - without an Ingress in front of it.
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://${API_UPSTREAM}/api/;
+        proxy_set_header Host $host;
+        proxy_read_timeout 10s;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

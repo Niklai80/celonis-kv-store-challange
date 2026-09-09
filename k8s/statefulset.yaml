@@ -1,0 +1,89 @@
+# StatefulSet, not a Deployment: pods need stable, predictable network identity
+# (kv-store-0, kv-store-1, kv-store-2) so ShardRouter's ordinal-based addressing works and so a
+# restarted pod comes back as the same shard index it was before - NOT for persistent storage,
+# which this app doesn't use at all (no volumeClaimTemplates here on purpose, see README non-goals).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kv-store
+  namespace: kvstore
+  labels:
+    app: kv-store
+spec:
+  serviceName: kv-store-headless
+  replicas: 3
+  # Default OrderedReady creates pod N+1 only after pod N is Ready, which is exactly backwards
+  # for us: pod 0's own startup wants to resolve pod 1 and pod 2's DNS names *during its own
+  # startup validation*. Parallel creates all 3 immediately, shrinking that race to whatever
+  # headless-Service DNS propagation takes rather than however long two other pods take to boot.
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: kv-store
+  template:
+    metadata:
+      labels:
+        app: kv-store
+    spec:
+      affinity:
+        podAntiAffinity:
+          # Soft, not hard: a 3-node anti-affinity requirement would leave the StatefulSet
+          # permanently unschedulable on a single-node dev cluster (minikube/kind). "Prefer
+          # spread, don't require it" is the right default for a demo; a production deployment
+          # on a real multi-node cluster would still get one shard per node in practice.
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values: [kv-store]
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: kv-store
+          image: kvstore:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            # Kept in sync with spec.replicas above by hand - see README "operational notes" for
+            # why this isn't automated (there's no admission controller here to enforce it, and
+            # ClusterConfig.validate() is exactly the fail-fast backstop for when it drifts).
+            - name: SHARD_COUNT
+              value: "3"
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # HOSTNAME is set automatically by the kubelet to the pod name (e.g. kv-store-0) -
+            # ClusterConfig parses the trailing "-0" as this pod's shard index.
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          startupProbe:
+            # Generous budget: ClusterConfig.validate() can retry peer DNS resolution for up to
+            # ~30s (30 attempts x 1s) before failing fast. The startup probe has to outlast that
+            # so a legitimately-still-validating pod isn't killed and restarted mid-validation.
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            failureThreshold: 18
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3

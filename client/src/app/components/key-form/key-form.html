@@ -1,0 +1,85 @@
+<div class="grid">
+  <section class="card">
+    <h2>Put</h2>
+    <form (ngSubmit)="submitPut()">
+      <label>
+        Key
+        <input name="putKey" [(ngModel)]="putKey" placeholder="e.g. a/b c%20d" autocomplete="off" />
+      </label>
+      <label>
+        Value
+        <textarea name="putValue" [(ngModel)]="putValue" rows="3" placeholder="raw text value"></textarea>
+      </label>
+      <button type="submit" [disabled]="!putKey || putBusy()">{{ putBusy() ? 'Saving…' : 'Put' }}</button>
+    </form>
+
+    @if (putStatus(); as status) {
+      @switch (status.kind) {
+        @case ('created') {
+          <p class="ok">Created (201)</p>
+        }
+        @case ('updated') {
+          <p class="ok">Updated (200)</p>
+        }
+        @case ('capacityExceeded') {
+          <p class="warn">507 Insufficient Storage — {{ status.reason }}</p>
+        }
+        @case ('error') {
+          <p class="err">{{ status.message }}</p>
+        }
+      }
+    }
+  </section>
+
+  <section class="card">
+    <h2>Get</h2>
+    <form (ngSubmit)="submitGet()">
+      <label>
+        Key
+        <input name="getKey" [(ngModel)]="getKey" placeholder="e.g. hello" autocomplete="off" />
+      </label>
+      <button type="submit" [disabled]="!getKey || getBusy()">{{ getBusy() ? 'Looking up…' : 'Get' }}</button>
+    </form>
+
+    @if (getStatus(); as status) {
+      @switch (status.kind) {
+        @case ('found') {
+          <p class="ok">{{ status.value }}</p>
+        }
+        @case ('notFound') {
+          <p class="warn">404 Not Found</p>
+        }
+        @case ('error') {
+          <p class="err">{{ status.message }}</p>
+        }
+      }
+    }
+  </section>
+
+  <section class="card">
+    <h2>Delete</h2>
+    <form (ngSubmit)="submitDelete()">
+      <label>
+        Key
+        <input name="deleteKey" [(ngModel)]="deleteKey" placeholder="e.g. hello" autocomplete="off" />
+      </label>
+      <button type="submit" class="danger" [disabled]="!deleteKey || deleteBusy()">
+        {{ deleteBusy() ? 'Deleting…' : 'Delete' }}
+      </button>
+    </form>
+
+    @if (deleteStatus(); as status) {
+      @switch (status.kind) {
+        @case ('deleted') {
+          <p class="ok">Deleted (204)</p>
+        }
+        @case ('notFound') {
+          <p class="warn">404 Not Found</p>
+        }
+        @case ('error') {
+          <p class="err">{{ status.message }}</p>
+        }
+      }
+    }
+  </section>
+</div>

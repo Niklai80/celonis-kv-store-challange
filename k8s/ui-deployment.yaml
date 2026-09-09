@@ -1,0 +1,67 @@
+# A plain Deployment, not a StatefulSet - the UI is stateless and has no shard concept, so it
+# scales independently of SHARD_COUNT. Served by nginx (see client/Dockerfile), not Spring Boot
+# static resources, specifically so UI replica count is decoupled from the store's shard count.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kv-store-ui
+  namespace: kvstore
+  labels:
+    app: kv-store-ui
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kv-store-ui
+  template:
+    metadata:
+      labels:
+        app: kv-store-ui
+    spec:
+      containers:
+        - name: kv-store-ui
+          image: kvstore-ui:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            # Only used if something bypasses the Ingress and hits this pod's /api directly -
+            # normally the Ingress (k8s/ingress.yaml) routes /api straight to the kv-store
+            # Service without ever reaching this container's nginx. Points at the Service, not a
+            # specific pod ordinal, so it load-balances across all shards like a client would.
+            - name: API_UPSTREAM
+              value: kv-store:8080
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kv-store-ui
+  namespace: kvstore
+  labels:
+    app: kv-store-ui
+spec:
+  type: ClusterIP
+  selector:
+    app: kv-store-ui
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080

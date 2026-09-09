@@ -1,0 +1,66 @@
+<section class="card">
+  <h2>Cluster</h2>
+  <p class="subtitle">
+    Fanned out from <code class="mono">GET /api/v1/cluster/stats</code> - one HTTP call per
+    other shard, plus this node's own local stats.
+  </p>
+
+  <div class="toolbar">
+    <button type="button" class="secondary" (click)="refresh()" [disabled]="loading()">
+      {{ loading() ? 'Loading…' : 'Refresh' }}
+    </button>
+  </div>
+
+  @if (error(); as message) {
+    <p class="err">{{ message }}</p>
+  } @else if (sortedNodes(); as nodes) {
+    <table>
+      <thead>
+        <tr>
+          <th>Node</th>
+          <th>Shard</th>
+          <th>Entries</th>
+          <th>Heap</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (node of nodes; track node.shardIndex) {
+          <tr [class.owner-row]="ownerShardIndex() === node.shardIndex">
+            <td class="mono">{{ node.nodeId }}</td>
+            <td>
+              <span class="badge">{{ node.shardIndex }} / {{ node.shardCount }}</span>
+            </td>
+            <td>{{ node.entryCount }}</td>
+            <td>
+              {{ formatBytes(node.heapUsedBytes) }} / {{ formatBytes(node.heapMaxBytes) }}
+              ({{ heapPercent(node) }}%)
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>
+
+<section class="card" style="margin-top: 16px">
+  <h2>Which shard owns this key?</h2>
+  <p class="subtitle">
+    Calls <code class="mono">GET /api/v1/keys/owner</code> - the exact same
+    FNV-1a-mod-shardCount routing decision the store itself uses to decide local-vs-forward.
+  </p>
+
+  <form (ngSubmit)="lookupOwner()">
+    <label>
+      Key
+      <input name="lookupKey" [(ngModel)]="lookupKey" placeholder="e.g. hello" autocomplete="off" />
+    </label>
+    <button type="submit" [disabled]="!lookupKey">Look up</button>
+  </form>
+
+  @if (lookupError(); as message) {
+    <p class="err">{{ message }}</p>
+  } @else if (ownerShardIndex() !== null) {
+    <!-- Shard 0 is falsy, so this checks !== null explicitly rather than truthiness. -->
+    <p class="ok">Owned by shard {{ ownerShardIndex() }} - highlighted in the table above.</p>
+  }
+</section>

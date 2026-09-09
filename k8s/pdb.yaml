@@ -1,0 +1,14 @@
+# With sharding (no replication), losing more than one pod at a time loses a shard's data
+# outright - see README non-goals. The PDB at least prevents voluntary disruptions (node drains,
+# cluster upgrades) from taking out more than one shard simultaneously; it can't do anything
+# about involuntary disruptions (a node dying).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kv-store
+  namespace: kvstore
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: kv-store

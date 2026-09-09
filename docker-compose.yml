@@ -1,0 +1,74 @@
+# 3 nodes with the exact same forwarding behavior as the Kubernetes StatefulSet, without a
+# cluster. The trick: ClusterConfig always addresses peers as
+# "kv-store-{i}.kv-store-headless.{namespace}.svc.cluster.local:8080", so each service below is
+# given that exact hostname as a Docker network alias - the app code doesn't know (and doesn't
+# need to know) it isn't running inside Kubernetes.
+name: kvstore
+
+services:
+  kv-store-0:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    hostname: kv-store-0
+    environment:
+      SHARD_COUNT: "3"
+      NAMESPACE: default
+      HOSTNAME: kv-store-0
+    networks:
+      kvnet:
+        aliases:
+          - kv-store-0.kv-store-headless.default.svc.cluster.local
+    ports:
+      - "8080:8080"
+
+  kv-store-1:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    hostname: kv-store-1
+    environment:
+      SHARD_COUNT: "3"
+      NAMESPACE: default
+      HOSTNAME: kv-store-1
+    networks:
+      kvnet:
+        aliases:
+          - kv-store-1.kv-store-headless.default.svc.cluster.local
+    ports:
+      - "8081:8080"
+
+  kv-store-2:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    hostname: kv-store-2
+    environment:
+      SHARD_COUNT: "3"
+      NAMESPACE: default
+      HOSTNAME: kv-store-2
+    networks:
+      kvnet:
+        aliases:
+          - kv-store-2.kv-store-headless.default.svc.cluster.local
+    ports:
+      - "8082:8080"
+
+  kv-store-ui:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    networks:
+      - kvnet
+    environment:
+      API_UPSTREAM: kv-store-0:8080
+    ports:
+      - "4200:8080"
+    depends_on:
+      - kv-store-0
+      - kv-store-1
+      - kv-store-2
+
+networks:
+  kvnet:
+    driver: bridge

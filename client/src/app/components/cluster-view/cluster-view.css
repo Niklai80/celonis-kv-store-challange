@@ -1,0 +1,4 @@
+tr.owner-row td {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  font-weight: 600;
+}

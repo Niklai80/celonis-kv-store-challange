@@ -1,0 +1,30 @@
+<div class="app-shell">
+  <header class="app-header">
+    <h1>KV Store</h1>
+    <span class="subtitle">sharded, in-memory, no persistence</span>
+  </header>
+
+  <nav class="tabs">
+    <button type="button" [class.active]="activeTab() === 'operations'" (click)="setTab('operations')">
+      Operations
+    </button>
+    <button type="button" [class.active]="activeTab() === 'browser'" (click)="setTab('browser')">
+      Key browser
+    </button>
+    <button type="button" [class.active]="activeTab() === 'cluster'" (click)="setTab('cluster')">
+      Cluster
+    </button>
+  </nav>
+
+  @switch (activeTab()) {
+    @case ('operations') {
+      <app-key-form />
+    }
+    @case ('browser') {
+      <app-key-browser />
+    }
+    @case ('cluster') {
+      <app-cluster-view />
+    }
+  }
+</div>

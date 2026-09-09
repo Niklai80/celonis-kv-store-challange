@@ -1,0 +1,20 @@
+# Peer discovery only - never hit directly by clients. publishNotReadyAddresses: true is what
+# makes a pod's DNS entry (kv-store-N.kv-store-headless...) appear as soon as the pod exists,
+# not after it passes readiness - which matters because ClusterConfig.validate() needs every
+# peer's DNS name to resolve during THIS pod's own startup, before it's ready itself.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kv-store-headless
+  namespace: kvstore
+  labels:
+    app: kv-store
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: kv-store
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
